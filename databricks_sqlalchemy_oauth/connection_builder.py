@@ -1,7 +1,7 @@
 import logging
 from typing import Optional, Union
 from abc import ABC, abstractproperty, abstractmethod
-from databricks.sdk.oauth import ClientCredentials, Token
+from databricks.sdk.oauth import ClientCredentials, Token, SessionCredentials, Refreshable
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy import create_engine
@@ -31,21 +31,32 @@ class DbConfig(ABC):
         """
         ...
 
-class ConnectionBuilder(ABC):
-    def __init__(self, db_config: DbConfig):
+class ConnectionBuilder():
+    def __init__(self, credential_provider: Refreshable, db_config: DbConfig):
         self.db_config = db_config
         self.token: Optional[Token] = None
         self.engine: Optional[Engine] = None
         self.session: Optional[Session] = None
+        self.credential_provider = credential_provider
         
     @abstractmethod
     def _get_access_token(self) -> Token:
         """
-        Get from ClientCredentials (client credential flow) - see ConnectionBuilderM2M
-        To achieve authorization code flow, create a new class inheriting from this class
-        and implement the _get_access_token method. You will need to parse the JWT
+        Calls function token() on credential_provider Refreshable instance
+        - for M2M OAuth the Refreshable instance will be of ClientCredentials type, 
+        - for U2M OAuth, SessionCredentials should be used
+        Check the databricks.sdk.oauth module for more info
+        
+        The token() function checks if the token is expired and if needed refreshes it.
+        If there is token present already, and is not expired, just return the current token.
+
+        Returns:
+            Token: token class with token string, information about expiration, etc.
         """
-        ...
+        if self.token is None or self.token.expired:
+            logger.debug("Obtaining new OAuth token")
+            self.token = self.credential_provider.token()
+        return self.token
         
     def _construct_conn_string(self) -> str:
         """Put together connection string with valid OAuth token
@@ -89,63 +100,3 @@ class ConnectionBuilder(ABC):
             session_factory = sessionmaker(bind=self.engine)
             self.session = session_factory()
         return self.session
-
-
-class ConnectionBuilderM2M(ConnectionBuilder):
-    """
-    For U2M Oauth with service principal client ID and client secret. 
-    More info: https://docs.databricks.com/en/dev-tools/authentication-oauth.html
-    """
-    def __init__(self, credential_manager: ClientCredentials, db_config: DbConfig):
-        super().__init__(db_config)
-        self.credential_manager = credential_manager
-
-    def _get_access_token(self) -> Token:
-        """Calls function token() on ClientCredentials instance from databricks.sdk.
-        The token() function checks if the token is expired and if needed refreshes it.
-        If there is token present already, and is not expired, just return the current token.
-
-        Returns:
-            Token: token class with token string, information about expiration, etc.
-        """
-        if self.token is None or self.token.expired:
-            logger.debug("Obtaining new OAuth token")
-            self.token = self.credential_manager.token()
-        return self.token
-
-
-class ConnectionBuilderU2MFlaskSession(ConnectionBuilder):
-    """
-    To build SQLalchemy connection from OAuth credentials stored in Flask session.
-    Details: https://github.com/databricks/databricks-sdk-py/blob/main/examples/flask_app_with_oauth.py
-    """
-    def __init__(self, flask_session, db_config: DbConfig):
-        super().__init__(db_config)
-        self.session = flask_session
-
-    def _get_access_token(self) -> Token:
-        pass
-
-
-class ConnectionBuilderFactory:
-    @staticmethod
-    def create_connector(connector_type: Union["M2M", "U2M_Flask_Session"], db_config: DbConfig, **kwargs) -> ConnectionBuilder:
-        if connector_type == "M2M":
-            return ConnectionBuilderFactory._create_m2m_connector(db_config, **kwargs)
-        elif connector_type == "U2M_Flask":
-            return ConnectionBuilderFactory._create_u2m_flask_connector(db_config, **kwargs)
-        else:
-            raise ValueError(f"Invalid connector_type: {connector_type}")
-
-    @staticmethod
-    def _create_m2m_connector(db_config: DbConfig, client_id: str, client_secret: str) -> ConnectionBuilderM2M:
-        if not (client_id and client_secret):
-            raise ValueError("client_id and client_secret are required for M2M connector")
-        credential_manager = ClientCredentials(client_id=client_id, client_secret=client_secret)
-        return ConnectionBuilderM2M(credential_manager, db_config)
-
-    @staticmethod
-    def _create_u2m_flask_connector(db_config: DbConfig, flask_session) -> ConnectionBuilderU2MFlaskSession:
-        if not flask_session:
-            raise ValueError("Flask session is missing.")
-        return ConnectionBuilderU2MFlaskSession(db_config)
