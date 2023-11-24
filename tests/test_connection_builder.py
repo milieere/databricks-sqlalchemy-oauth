@@ -1,11 +1,11 @@
 import unittest
 from unittest.mock import MagicMock, patch, PropertyMock
-from databricks_sqlalchemy_oauth.connection_builder import ConnectionBuilderM2M, Token
+from databricks_sqlalchemy_oauth.connection_builder import ConnectionBuilder, Token
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import Session
 
 
-class ConnectionBuilderM2MTest(unittest.TestCase):
+class ConnectionBuilderTests(unittest.TestCase):
     def setUp(self):
         self.db_config = MagicMock()
         self.db_config.hostname = "hostname"
@@ -17,7 +17,7 @@ class ConnectionBuilderM2MTest(unittest.TestCase):
         Test that if token is None, it will be fetched.
         """
         credential_manager = MagicMock()
-        connection_builder = ConnectionBuilderM2M(credential_manager, self.db_config)
+        connection_builder = ConnectionBuilder(credential_manager, self.db_config)
         connection_builder.token = None
         token_mock = MagicMock(access_token="dummy_token")
         self.assertIsNone(connection_builder.token)
@@ -36,7 +36,7 @@ class ConnectionBuilderM2MTest(unittest.TestCase):
         expired_token = MagicMock(access_token="dummy_token")
         type(expired_token).expired = PropertyMock(return_value=True)
 
-        connection_builder = ConnectionBuilderM2M(credential_manager, self.db_config)
+        connection_builder = ConnectionBuilder(credential_manager, self.db_config)
         connection_builder.token = expired_token
         self.assertTrue(connection_builder.token.expired)
 
@@ -53,10 +53,9 @@ class ConnectionBuilderM2MTest(unittest.TestCase):
         Test that when token is valid, and engine is present the _construct_conn_string is not called
         """
         credential_manager = MagicMock()
-        # Create a token instance with a mock for the expired property
         valid_token = Token(access_token="dummy_token")
         type(valid_token).expired = PropertyMock(return_value=False)
-        connection_builder = ConnectionBuilderM2M(credential_manager, self.db_config)
+        connection_builder = ConnectionBuilder(credential_manager, self.db_config)
         connection_builder.token = valid_token
         connection_builder.engine = MagicMock()
 
@@ -72,7 +71,7 @@ class ConnectionBuilderM2MTest(unittest.TestCase):
         returns ValueError when trying to fetch token.
         """
         credential_manager_invalid_config = MagicMock()
-        connection_builder = ConnectionBuilderM2M(
+        connection_builder = ConnectionBuilder(
             credential_manager_invalid_config, self.db_config
         )
 
@@ -90,7 +89,7 @@ class ConnectionBuilderM2MTest(unittest.TestCase):
         Test connection string assembly
         """
         credential_manager = MagicMock()
-        connection_builder = ConnectionBuilderM2M(credential_manager, self.db_config)
+        connection_builder = ConnectionBuilder(credential_manager, self.db_config)
 
         with patch.object(connection_builder, "_get_access_token") as mock_get_token:
             mock_token = MagicMock(access_token="dummy_token")
@@ -109,7 +108,7 @@ class ConnectionBuilderM2MTest(unittest.TestCase):
         Test that engine is created and returned if it is initially None
         """
         credential_manager = MagicMock()
-        connection_builder = ConnectionBuilderM2M(credential_manager, self.db_config)
+        connection_builder = ConnectionBuilder(credential_manager, self.db_config)
         connection_builder.engine = None
         self.assertIsNone(connection_builder.engine)
 
@@ -121,7 +120,7 @@ class ConnectionBuilderM2MTest(unittest.TestCase):
 
     def test_get_session(self):
         credential_manager = MagicMock()
-        connection_builder = ConnectionBuilderM2M(credential_manager, self.db_config)
+        connection_builder = ConnectionBuilder(credential_manager, self.db_config)
 
         with patch.object(connection_builder, "_get_access_token") as mock_get_token:
             mock_token = MagicMock(access_token="dummy_token")
