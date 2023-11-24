@@ -1,7 +1,10 @@
 import logging
-from typing import Optional, Union
+from typing import Optional
 from abc import ABC, abstractproperty, abstractmethod
-from databricks.sdk.oauth import ClientCredentials, Token, SessionCredentials, Refreshable
+from databricks.sdk.oauth import (
+    Token,
+    Refreshable,
+)
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy import create_engine
@@ -31,22 +34,23 @@ class DbConfig(ABC):
         """
         ...
 
-class ConnectionBuilder():
+
+class ConnectionBuilder:
     def __init__(self, credential_provider: Refreshable, db_config: DbConfig):
         self.db_config = db_config
         self.token: Optional[Token] = None
         self.engine: Optional[Engine] = None
         self.session: Optional[Session] = None
         self.credential_provider = credential_provider
-        
+
     @abstractmethod
     def _get_access_token(self) -> Token:
         """
         Calls function token() on credential_provider Refreshable instance
-        - for M2M OAuth the Refreshable instance will be of ClientCredentials type, 
+        - for M2M OAuth the Refreshable instance will be of ClientCredentials type,
         - for U2M OAuth, SessionCredentials should be used
         Check the databricks.sdk.oauth module for more info
-        
+
         The token() function checks if the token is expired and if needed refreshes it.
         If there is token present already, and is not expired, just return the current token.
 
@@ -57,7 +61,7 @@ class ConnectionBuilder():
             logger.debug("Obtaining new OAuth token")
             self.token = self.credential_provider.token()
         return self.token
-        
+
     def _construct_conn_string(self) -> str:
         """Put together connection string with valid OAuth token
 
@@ -69,7 +73,7 @@ class ConnectionBuilder():
         if self.db_config.db:
             conn_string += f"&catalog={self.db_config.db}"
         return conn_string
-    
+
     def _ensure_engine(self) -> None:
         """Helper method to ensure the engine is created or refreshed.
         If there's no token, token is invalid, or engine doesn't exist,
