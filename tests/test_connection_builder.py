@@ -97,10 +97,12 @@ class ConnectionBuilderTests(unittest.TestCase):
             conn_string = connection_builder._construct_conn_string()
             expected_conn_string = "databricks://token:dummy_token@hostname/?http_path=http_path&catalog=db"
             self.assertEqual(conn_string, expected_conn_string)
-            
+
             self.db_config.db = None
             conn_string_without_db = connection_builder._construct_conn_string()
-            expected_conn_string_without_db = "databricks://token:dummy_token@hostname/?http_path=http_path"
+            expected_conn_string_without_db = (
+                "databricks://token:dummy_token@hostname/?http_path=http_path"
+            )
             self.assertEqual(conn_string_without_db, expected_conn_string_without_db)
 
     def test_get_engine(self):
