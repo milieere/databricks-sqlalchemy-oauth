@@ -8,9 +8,10 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-sqlalchemy = ">=1.4.49,<=2.0.0"
+sqlalchemy = "^2.0.0"
 databricks-sql-connector = "^3.0.0"
 databricks-sdk = "^0.13.0"
+pydantic = "^2.5.2"
 
 
 [tool.poetry.group.dev.dependencies]
