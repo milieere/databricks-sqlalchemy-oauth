@@ -1,8 +1,25 @@
 import unittest
+from pydantic import ValidationError
 from unittest.mock import MagicMock, patch, PropertyMock
-from databricks_sqlalchemy_oauth.connection_builder import ConnectionBuilder, Token
+from databricks_sqlalchemy_oauth.connection_builder import ConnectionBuilder, Token, DbConfig
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import Session
+
+class DbConfigTests(unittest.TestCase):
+    def test_valid_inputs(self):
+        # Valid inputs should not raise any exceptions
+        config = DbConfig(hostname="https://our-dev-workspace.cloud.databricks.com", http_path="/sql/1.0/warehouses/abcdefghijk", db=None)
+        self.assertIsInstance(config, DbConfig)
+
+    def test_invalid_inputs(self):
+        # Invalid inputs should raise a ValidationError
+        with self.assertRaises(ValidationError):
+            # Missing required properties
+            config = DbConfig(http_path="/sql/1.0/warehouses/abcdefghijk", db=None)
+
+        with self.assertRaises(ValidationError):
+            # Invalid hostname format
+            config = DbConfig(hostname="invalid_url", http_path="/sql/1.0/warehouses/abcdefghijk", db=None)
 
 
 class ConnectionBuilderTests(unittest.TestCase):

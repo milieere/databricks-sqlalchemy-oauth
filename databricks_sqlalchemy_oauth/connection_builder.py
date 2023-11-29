@@ -1,4 +1,5 @@
 import logging
+from pydantic import BaseModel, HttpUrl
 from typing import Optional
 from abc import ABC, abstractproperty, abstractmethod
 from databricks.sdk.oauth import (
@@ -12,27 +13,32 @@ from sqlalchemy import create_engine
 logger = logging.getLogger("databricks_sqlalchemy_oauth")
 
 
-class DbConfig(ABC):
-    @abstractproperty
-    def hostname(self) -> str:
-        """
-        Databricks hostname - workspace URL (i.e. our-dev-workspace.cloud.databricks.com)
-        """
-        ...
+class DbConfig(BaseModel):
+    hostname: HttpUrl
+    http_path: str
+    db: Optional[str]
 
-    @abstractproperty
-    def http_path(self) -> str:
-        """
-        SQL warehouse HTTP path (i.e. /sql/1.0/warehouses/abcdefghijk)
-        """
-        ...
+# class DbConfig(ABC):
+#     @abstractproperty
+#     def hostname(self) -> str:
+#         """
+#         Databricks hostname - workspace URL (i.e. our-dev-workspace.cloud.databricks.com)
+#         """
+#         ...
 
-    @abstractproperty
-    def db(self) -> Optional[str]:
-        """
-        Schema name in the Databricks SQL warehouse - optional
-        """
-        ...
+#     @abstractproperty
+#     def http_path(self) -> str:
+#         """
+#         SQL warehouse HTTP path (i.e. /sql/1.0/warehouses/abcdefghijk)
+#         """
+#         ...
+
+#     @abstractproperty
+#     def db(self) -> Optional[str]:
+#         """
+#         Schema name in the Databricks SQL warehouse - optional
+#         """
+#         ...
 
 
 class ConnectionBuilder:
