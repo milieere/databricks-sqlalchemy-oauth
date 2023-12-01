@@ -19,7 +19,7 @@ class DbConfigTests(unittest.TestCase):
 
         with self.assertRaises(ValidationError):
             # Invalid hostname format
-            config = DbConfig(hostname="invalid_url", http_path="/sql/1.0/warehouses/abcdefghijk", db=None)
+            config = DbConfig(hostname=1234, http_path="/sql/1.0/warehouses/abcdefghijk", db=None)
 
 
 class ConnectionBuilderTests(unittest.TestCase):
