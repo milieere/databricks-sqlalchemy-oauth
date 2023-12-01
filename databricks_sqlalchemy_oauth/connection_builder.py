@@ -1,7 +1,6 @@
 import logging
 from pydantic import BaseModel, HttpUrl
 from typing import Optional
-from abc import ABC, abstractproperty, abstractmethod
 from databricks.sdk.oauth import (
     Token,
     Refreshable,
@@ -18,29 +17,6 @@ class DbConfig(BaseModel):
     http_path: str
     db: Optional[str]
 
-# class DbConfig(ABC):
-#     @abstractproperty
-#     def hostname(self) -> str:
-#         """
-#         Databricks hostname - workspace URL (i.e. our-dev-workspace.cloud.databricks.com)
-#         """
-#         ...
-
-#     @abstractproperty
-#     def http_path(self) -> str:
-#         """
-#         SQL warehouse HTTP path (i.e. /sql/1.0/warehouses/abcdefghijk)
-#         """
-#         ...
-
-#     @abstractproperty
-#     def db(self) -> Optional[str]:
-#         """
-#         Schema name in the Databricks SQL warehouse - optional
-#         """
-#         ...
-
-
 class ConnectionBuilder:
     def __init__(self, credential_provider: Refreshable, db_config: DbConfig):
         self.db_config = db_config
@@ -49,7 +25,6 @@ class ConnectionBuilder:
         self.session: Optional[Session] = None
         self.credential_provider = credential_provider
 
-    @abstractmethod
     def _get_access_token(self) -> Token:
         """
         Calls function token() on credential_provider Refreshable instance
