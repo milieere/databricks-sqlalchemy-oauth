@@ -13,7 +13,7 @@ logger = logging.getLogger("databricks_sqlalchemy_oauth")
 
 
 class DbConfig(BaseModel):
-    hostname: HttpUrl
+    hostname: str
     http_path: str
     db: Optional[str]
 
